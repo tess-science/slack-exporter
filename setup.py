@@ -12,7 +12,7 @@ from setuptools import find_packages, setup
 
 # PROJECT SPECIFIC
 
-NAME = "exoplanet"
+NAME = "slack_exporter"
 PACKAGES = find_packages(where="src")
 META_PATH = os.path.join("src", "slack_exporter", "__init__.py")
 CLASSIFIERS = [
@@ -24,7 +24,7 @@ CLASSIFIERS = [
     "Programming Language :: Python :: 3",
 ]
 SETUP_REQUIRES = ["setuptools>=40.6.0", "setuptools_scm"]
-INSTALL_REQUIRES = ["aiohttp"]
+INSTALL_REQUIRES = ["aiohttp", "tqdm"]
 EXTRA_REQUIRE: Dict[str, List[str]] = {}
 
 # END PROJECT SPECIFIC
@@ -74,4 +74,7 @@ if __name__ == "__main__":
         setup_requires=SETUP_REQUIRES,
         zip_safe=False,
         options={"bdist_wheel": {"universal": "1"}},
+        entry_points={
+            "console_scripts": ["slack-exporter=slack_exporter:main"]
+        },
     )

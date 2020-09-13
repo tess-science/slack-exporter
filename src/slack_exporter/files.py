@@ -10,36 +10,50 @@ from typing import List, Optional
 import asyncio
 from aiohttp import ClientSession
 
+import tqdm
 
-async def fetch(session: ClientSession, filename: str, url: str) -> None:
+
+async def fetch(
+    bar: tqdm.tqdm, session: ClientSession, filename: str, url: str
+) -> None:
     async with session.get(url) as response:
         data = await response.read()
         with open(filename, "wb") as f:
             f.write(data)
+        bar.update()
 
 
 async def bound_fetch(
-    sem: asyncio.Semaphore, session: ClientSession, filename: str, url: str
+    bar: tqdm.tqdm,
+    sem: asyncio.Semaphore,
+    session: ClientSession,
+    filename: str,
+    url: str,
 ) -> None:
     async with sem:
-        await fetch(session, filename, url)
+        await fetch(bar, session, filename, url)
 
 
-async def execute_downloads(filenames: List[str], urls: List[str]) -> None:
+async def execute_downloads(
+    bar: tqdm.tqdm, filenames: List[str], urls: List[str]
+) -> None:
     tasks = []
     sem = asyncio.Semaphore(10)
     async with ClientSession() as session:
         for fn, url in zip(filenames, urls):
-            task = asyncio.ensure_future(bound_fetch(sem, session, fn, url))
+            task = asyncio.ensure_future(
+                bound_fetch(bar, sem, session, fn, url)
+            )
             tasks.append(task)
         responses = asyncio.gather(*tasks)
         await responses
 
 
 def download_files(filenames: List[str], urls: List[str]) -> None:
-    loop = asyncio.get_event_loop()
-    future = asyncio.ensure_future(execute_downloads(filenames, urls))
-    loop.run_until_complete(future)
+    with tqdm.tqdm(total=len(filenames)) as bar:
+        loop = asyncio.get_event_loop()
+        future = asyncio.ensure_future(execute_downloads(bar, filenames, urls))
+        loop.run_until_complete(future)
 
 
 def find_files(obj: dict) -> List[str]:
@@ -79,14 +93,3 @@ def download_files_for_export_path(
         os.makedirs(os.path.split(filenames[-1])[0], exist_ok=True)
 
     download_files(filenames, files)
-
-
-# if __name__ == "__main__":
-#     import sys
-
-#     if len(sys.argv) < 2:
-#         print("Usage: scrape.py /path/to/slack/export")
-#         sys.exit(0)
-
-#     for path in sys.argv[1:]:
-#         process_path(path)

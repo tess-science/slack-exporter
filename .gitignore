@@ -1,0 +1,4 @@
+exports/
+*.zip
+*_version.py
+files.slack.com/
